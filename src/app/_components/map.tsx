@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import type { GeoJsonObject, FeatureCollection } from "geojson";
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -17,24 +18,41 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+const geojsonData: FeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {
+        name: "My Polygon",
+        color: "blue",
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [12.5, 55.6],
+            [12.6, 55.7],
+            [12.7, 55.6],
+            [12.6, 55.5],
+            [12.5, 55.6],
+          ],
+        ],
+      },
+    },
+  ],
+};
+
 const MapComponent = () => {
-  const position: [number, number] = [51.505, -0.09];
+  const position: [number, number] = [55.6, 12.5];
 
   return (
-    <MapContainer
-      center={position}
-      zoom={13}
-      className="h-screen w-screen"
-    >
+    <MapContainer center={position} zoom={13} className="h-screen w-screen">
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker position={position}>
-        <Popup>
-          A pretty CSS3 popup. <br /> Easily customizable.
-        </Popup>
-      </Marker>
+      <GeoJSON data={geojsonData} />
     </MapContainer>
   );
 };
