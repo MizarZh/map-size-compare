@@ -16,10 +16,13 @@ export const createTable = sqliteTableCreator(
 );
 
 export const geoJSON = createTable(
-  "geoJSON",
+  "countries",
   (d) => ({
-    id: d.integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+    // id: d.integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+    id: d.text().primaryKey(),
     name: d.text({ length: 256 }),
+    iso3: d.text(),
+    iso2: d.text(),
     geojson: d.text("geojson", { mode: "json" }).$type<FeatureCollection>(),
   }),
   (t) => [index("name_idx").on(t.name)],
