@@ -37,6 +37,6 @@
     "**/*.cjs",
     "**/*.js",
     ".next/types/**/*.ts"
-, "script/contries/parse_countries.mjs", "script/countries/parse_countries.mjs"  ],
+  ],
   "exclude": ["node_modules"]
 }

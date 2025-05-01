@@ -3,7 +3,6 @@
 
 import { sql } from "drizzle-orm";
 import { index, sqliteTableCreator } from "drizzle-orm/sqlite-core";
-import type { FeatureCollection } from "geojson";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -11,22 +10,7 @@ import type { FeatureCollection } from "geojson";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const createTable = sqliteTableCreator(
-  (name) => `map-size-compare_${name}`,
-);
-
-export const geoJSON = createTable(
-  "countries",
-  (d) => ({
-    // id: d.integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
-    id: d.text().primaryKey(),
-    name: d.text({ length: 256 }),
-    iso3: d.text(),
-    iso2: d.text(),
-    geojson: d.text("geojson", { mode: "json" }).$type<FeatureCollection>(),
-  }),
-  (t) => [index("name_idx").on(t.name)],
-);
+export const createTable = sqliteTableCreator((name) => `map-size-compare_${name}`);
 
 export const posts = createTable(
   "post",

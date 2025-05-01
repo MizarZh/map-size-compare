@@ -2,6 +2,21 @@
 import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+
+const DefaultIcon = L.icon({
+  // @ts-expect-error idk why pass StaticImageData to string works
+  iconUrl: icon,
+  // @ts-expect-error idk why pass StaticImageData to string works
+  shadowUrl: iconShadow,
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
 const MapComponent = () => {
   const position: [number, number] = [51.505, -0.09];
 
@@ -9,8 +24,7 @@ const MapComponent = () => {
     <MapContainer
       center={position}
       zoom={13}
-      style={{ height: "500px", width: "100%" }}
-      className="h-[500px] w-full"
+      className="h-screen w-screen"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
