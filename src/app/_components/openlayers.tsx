@@ -53,9 +53,10 @@ const geojsonData: FeatureCollection = {
         color: "blue",
         // Store original coords on the feature for easier access
         // Use a deep copy to avoid accidental modification
-        originalCoords: JSON.parse(
-          JSON.stringify(originalGeographicCoordinates),
-        ),
+        // originalCoords: JSON.parse(
+        //   JSON.stringify(originalGeographicCoordinates),
+        // ),
+        originalCoords: originalGeographicCoordinates,
       },
       geometry: {
         type: "Polygon",
@@ -121,7 +122,7 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
 
     // --- Custom Translation Logic ---
 
-    dragInteraction.on("translatestart", (event: TranslateEvent) => {
+    const translateStart = (event: TranslateEvent) => {
       const feature = event.features.getArray()[0];
       if (!feature) return;
       const geometry = feature.getGeometry();
@@ -153,7 +154,9 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
       dragState.startProjFeatureCenter = currentProjCenter; // Feature's center (EPSG:3857)
 
       console.log("Translate Start:", { ...dragState });
-    });
+    };
+
+    dragInteraction.on("translatestart", translateStart);
 
     const translateEventHandler = (event: TranslateEvent) => {
       // Ensure we have all necessary start data
@@ -167,6 +170,11 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
         return;
       }
 
+      if (!dragState.originalGeoCoords) {
+        console.warn("Skipping translate: originalGeoCoords is undefined.");
+        return;
+      }
+
       const feature = event.features.getArray()[0];
       if (!feature) return;
       const geometry = feature.getGeometry();
@@ -175,12 +183,38 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
       // 1. Current pointer coordinate in view projection (EPSG:3857)
       const currentProjPointerCoord = event.coordinate;
 
+      if (
+        currentProjPointerCoord[0] === undefined ||
+        currentProjPointerCoord[1] === undefined
+      ) {
+        console.warn(
+          `Skipping translate: currentProjPointerCoord is undefined`,
+        );
+        return;
+      }
+      if (
+        dragState.startProjPointerCoord[0] === undefined ||
+        dragState.startProjPointerCoord[1] === undefined
+      ) {
+        console.warn(
+          `Skipping translate: dragState.startProjPointerCoord is undefined`,
+        );
+        return;
+      }
       // 2. Calculate the delta (how much the pointer moved) in projected coords
       const deltaX =
         currentProjPointerCoord[0] - dragState.startProjPointerCoord[0];
       const deltaY =
         currentProjPointerCoord[1] - dragState.startProjPointerCoord[1];
-
+      if (
+        dragState.startProjFeatureCenter[0] === undefined ||
+        dragState.startProjFeatureCenter[1] === undefined
+      ) {
+        console.warn(
+          `Skipping translate: dragState.startProjFeatureCenter is undefined`,
+        );
+        return;
+      }
       // 3. Calculate the feature's new target *projected* center
       const newProjCenter = [
         dragState.startProjFeatureCenter[0] + deltaX,
@@ -194,14 +228,42 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
         dataProjection,
       );
 
+      if (!dragState.initialGeoCenter) {
+        console.warn("Skipping translate: initialGeoCenter is undefined.");
+        return;
+      }
+
       // 5. Calculate new geographic coordinates for ALL vertices relative to the new geographic center
       const initialCenterLon = dragState.initialGeoCenter[0];
+      if (initialCenterLon === undefined) {
+        console.warn("Skipping translate: initialCenterLon is undefined.");
+        return;
+      }
       const initialCenterLat = dragState.initialGeoCenter[1];
+      if (initialCenterLat === undefined) {
+        console.warn("Skipping translate: initialCenterLat is undefined.");
+        return;
+      }
       const newCenterLon = newGeoCenter[0];
+      if (newCenterLon === undefined) {
+        console.warn("Skipping translate: newCenterLon is undefined.");
+        return;
+      }
       const newCenterLat = newGeoCenter[1];
+      if (newCenterLat === undefined) {
+        console.warn("Skipping translate: newCenterLat is undefined.");
+        return;
+      }
 
       const newGeographicCoords = dragState.originalGeoCoords.map((ring) =>
         ring.map((originalGeoCoord) => {
+          if (
+            originalGeoCoord[0] === undefined ||
+            originalGeoCoord[1] === undefined
+          ) {
+            console.warn("Skipping translate: originalGeoCoord is undefined.");
+            return;
+          }
           // Calculate offset from original geographic center
           const lonOffset = originalGeoCoord[0] - initialCenterLon;
           const latOffset = originalGeoCoord[1] - initialCenterLat;
@@ -228,7 +290,35 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
 
     dragInteraction.on("translateend", (event: TranslateEvent) => {
       console.log("Translate End");
-      // Optional: Recalculate final precise coords/center here if needed
+
+      const feature = event.features.getArray()[0];
+      if (feature) {
+        const geometry = feature.getGeometry();
+        if (geometry instanceof Polygon) {
+          // Get the current projected coordinates
+          const currentProjectedCoords = geometry.getCoordinates();
+
+          // Transform the projected coordinates back to geographic coordinates
+          const dataProjection = "EPSG:4326";
+          const viewProjection = "EPSG:3857";
+
+          if (!currentProjectedCoords) {
+            console.warn(
+              "Skipping translateend: currentProjectedCoords is undefined.",
+            );
+            return;
+          }
+
+          const newGeographicCoords = currentProjectedCoords.map((ring) =>
+            ring.map((coord) =>
+              transform(coord, viewProjection, dataProjection),
+            ),
+          );
+
+          // Update the feature's originalCoords property with the new geographic coordinates
+          feature.set("originalCoords", newGeographicCoords);
+        }
+      }
 
       // Reset drag state
       dragState.initialGeoCenter = null;
