@@ -11,7 +11,7 @@ export default async function Home() {
   return (
     <HydrateClient>
       {/* <MapCaller /> */}
-      <OlMapComponent center={[12.5, 55.6]} zoom={12} />
+      <OlMapComponent center={[12.5, 55.6]} zoom={6} />
     </HydrateClient>
   );
 }

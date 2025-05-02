@@ -8,18 +8,40 @@ import VectorSource from "ol/source/Vector";
 import View from "ol/View";
 import { defaults as defaultControls } from "ol/control/defaults";
 import GeoJSON from "ol/format/GeoJSON";
-import Translate from "ol/interaction/Translate";
+import Translate, { type TranslateEvent } from "ol/interaction/Translate";
 import type Geometry from "ol/geom/Geometry";
-import type Feature from "ol/Feature";
-import { transform } from "ol/proj";
+import Feature from "ol/Feature"; // Import Feature
+import { transform, fromLonLat, toLonLat, get as getProjection } from "ol/proj";
 import { Point, Polygon } from "ol/geom";
+import * as olExtent from "ol/extent"; // For calculating center/extent
 import "~/styles/ol.css";
-import type { GeoJsonObject, FeatureCollection } from "geojson";
+import type { FeatureCollection } from "geojson";
+
+import { throttle } from "~/utils/utils";
 
 interface OpenLayersProps {
   center: number[];
   zoom: number;
 }
+
+// Store original geographic coordinates separately for reference
+// Ensure the polygon is closed (first and last point are the same)
+const originalGeographicCoordinates = [
+  [
+    [5.0, 45.0],
+    [7.0, 47.0],
+    [10.0, 46.0],
+    [9.0, 44.0],
+    [6.0, 43.0],
+    [5.0, 45.0],
+  ],
+  [
+    [12.0, 48.0],
+    [14.0, 50.0],
+    [13.5, 49.0],
+    [12.0, 48.0],
+  ],
+];
 
 const geojsonData: FeatureCollection = {
   type: "FeatureCollection",
@@ -29,17 +51,15 @@ const geojsonData: FeatureCollection = {
       properties: {
         name: "My Polygon",
         color: "blue",
+        // Store original coords on the feature for easier access
+        // Use a deep copy to avoid accidental modification
+        originalCoords: JSON.parse(
+          JSON.stringify(originalGeographicCoordinates),
+        ),
       },
       geometry: {
         type: "Polygon",
-        coordinates: [
-          [
-            [12.5, 55.6],
-            [12.6, 56.7],
-            [16.7, 56.6],
-            [16.6, 55.5],
-          ],
-        ],
+        coordinates: originalGeographicCoordinates,
       },
     },
   ],
@@ -48,59 +68,186 @@ const geojsonData: FeatureCollection = {
 const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
   const [map, setMap] = useState<OlMap>();
   const mapRef = useRef<HTMLDivElement>(null);
+  // Store state related to the drag operation
+  const dragState = useRef<{
+    initialGeoCenter: number[] | null;
+    originalGeoCoords: number[][][] | null;
+    startProjPointerCoord: number[] | null; // Pointer coord where drag started (EPSG:3857)
+    startProjFeatureCenter: number[] | null; // Feature center when drag started (EPSG:3857)
+  }>({
+    initialGeoCenter: null,
+    originalGeoCoords: null,
+    startProjPointerCoord: null,
+    startProjFeatureCenter: null,
+  }).current; // Use .current for direct access within useEffect/callbacks
 
   const mounted = useRef(false);
+
   useEffect(() => {
     if (!mapRef.current || mounted.current) return;
-    const centerWebMercator = transform(center, "EPSG:4326", "EPSG:3857");
+
+    const viewProjection = "EPSG:3857";
+    const dataProjection = "EPSG:4326";
+
     const vectorSource = new VectorSource({
       features: new GeoJSON().readFeatures(geojsonData, {
-        dataProjection: "EPSG:4326",
-        featureProjection: "EPSG:3857",
+        dataProjection: dataProjection,
+        featureProjection: viewProjection,
       }),
     });
+
     const vectorLayer = new VectorLayer({
       source: vectorSource,
+      style: {
+        "stroke-color": "blue",
+        "stroke-width": 2,
+        "fill-color": "rgba(0, 0, 255, 0.1)",
+      },
     });
-    const props = {
+
+    const olMap = new OlMap({
       layers: [new TileLayer({ source: new OSM() }), vectorLayer],
       controls: defaultControls(),
       view: new View({
-        center: centerWebMercator,
+        center: fromLonLat(center, viewProjection), // Project center to view projection
         zoom: zoom,
+        projection: viewProjection,
       }),
       target: mapRef.current,
-    };
+    });
     const dragInteraction = new Translate({
-      layers: [vectorLayer],
-    });
-    dragInteraction.on("translating", (event) => {
-      event.features.forEach((feature) => {
-        const geometry = feature.getGeometry();
-        if (geometry instanceof Point) {
-          const draggedCoordinate = geometry.getCoordinates();
-
-          console.log("Point dragged to:", draggedCoordinate);
-          // Handle point-specific logic here
-        } else if (geometry instanceof Polygon) {
-          const draggedCoordinates = geometry.getCoordinates();
-
-          console.log("Polygon dragged to:", draggedCoordinates);
-          // Handle polygon-specific logic here, e.g., updating state with the new vertices
-        } else {
-          console.log("Feature with unsupported geometry type dragged.");
-        }
-      });
+      features: vectorSource.getFeaturesCollection()!,
     });
 
-    const olMap = new OlMap(props);
+    // --- Custom Translation Logic ---
+
+    dragInteraction.on("translatestart", (event: TranslateEvent) => {
+      const feature = event.features.getArray()[0];
+      if (!feature) return;
+      const geometry = feature.getGeometry();
+      if (!(geometry instanceof Polygon)) return;
+
+      // Store original geographic coordinates from feature property
+      dragState.originalGeoCoords = feature.get(
+        "originalCoords",
+      ) as number[][][];
+      if (!dragState.originalGeoCoords) {
+        console.error(
+          "Original geographic coordinates not found on feature properties!",
+        );
+        return;
+      }
+
+      // Calculate and store initial GEOGRAPHIC center (more robust)
+      // Need to transform the *current* projected center back to geographic
+      const currentProjExtent = geometry.getExtent();
+      const currentProjCenter = olExtent.getCenter(currentProjExtent);
+      dragState.initialGeoCenter = transform(
+        currentProjCenter,
+        viewProjection,
+        dataProjection,
+      );
+
+      // Store starting projected coordinates (pointer and feature center)
+      dragState.startProjPointerCoord = event.coordinate; // Pointer's map coord (EPSG:3857)
+      dragState.startProjFeatureCenter = currentProjCenter; // Feature's center (EPSG:3857)
+
+      console.log("Translate Start:", { ...dragState });
+    });
+
+    const translateEventHandler = (event: TranslateEvent) => {
+      // Ensure we have all necessary start data
+      if (
+        !dragState.originalGeoCoords ||
+        !dragState.initialGeoCenter ||
+        !dragState.startProjPointerCoord ||
+        !dragState.startProjFeatureCenter
+      ) {
+        console.warn("Skipping translate: missing drag start data.");
+        return;
+      }
+
+      const feature = event.features.getArray()[0];
+      if (!feature) return;
+      const geometry = feature.getGeometry();
+      if (!(geometry instanceof Polygon)) return;
+
+      // 1. Current pointer coordinate in view projection (EPSG:3857)
+      const currentProjPointerCoord = event.coordinate;
+
+      // 2. Calculate the delta (how much the pointer moved) in projected coords
+      const deltaX =
+        currentProjPointerCoord[0] - dragState.startProjPointerCoord[0];
+      const deltaY =
+        currentProjPointerCoord[1] - dragState.startProjPointerCoord[1];
+
+      // 3. Calculate the feature's new target *projected* center
+      const newProjCenter = [
+        dragState.startProjFeatureCenter[0] + deltaX,
+        dragState.startProjFeatureCenter[1] + deltaY,
+      ];
+
+      // 4. Calculate the feature's new target *geographic* center
+      const newGeoCenter = transform(
+        newProjCenter,
+        viewProjection,
+        dataProjection,
+      );
+
+      // 5. Calculate new geographic coordinates for ALL vertices relative to the new geographic center
+      const initialCenterLon = dragState.initialGeoCenter[0];
+      const initialCenterLat = dragState.initialGeoCenter[1];
+      const newCenterLon = newGeoCenter[0];
+      const newCenterLat = newGeoCenter[1];
+
+      const newGeographicCoords = dragState.originalGeoCoords.map((ring) =>
+        ring.map((originalGeoCoord) => {
+          // Calculate offset from original geographic center
+          const lonOffset = originalGeoCoord[0] - initialCenterLon;
+          const latOffset = originalGeoCoord[1] - initialCenterLat;
+          // Apply offset to the new geographic center
+          // Basic addition is an approximation, but often sufficient for visuals
+          return [newCenterLon + lonOffset, newCenterLat + latOffset];
+        }),
+      );
+
+      // 6. Transform these new geographic coordinates back to the view projection (EPSG:3857)
+      const newProjectedCoords = newGeographicCoords.map((ring) =>
+        ring.map((geoCoord) =>
+          transform(geoCoord, dataProjection, viewProjection),
+        ),
+      );
+
+      // 7. **Crucially: Manually update the feature's geometry.**
+      // This overwrites whatever the Translate interaction might do internally.
+      geometry.setCoordinates(newProjectedCoords);
+    };
+
+    // Throttle the expensive calculations
+    dragInteraction.on("translating", throttle(translateEventHandler, 1)); // Adjust throttle (e.g., 30-100ms)
+
+    dragInteraction.on("translateend", (event: TranslateEvent) => {
+      console.log("Translate End");
+      // Optional: Recalculate final precise coords/center here if needed
+
+      // Reset drag state
+      dragState.initialGeoCenter = null;
+      dragState.originalGeoCoords = null;
+      dragState.startProjPointerCoord = null;
+      dragState.startProjFeatureCenter = null;
+    });
+
     olMap.addInteraction(dragInteraction);
     setMap(olMap);
     mounted.current = true;
+
     return () => {
+      // Clean up interaction listeners if necessary, although olMap.dispose() should handle it
       olMap.dispose();
     };
-  }, [center, zoom]);
+    // Watch for changes in center/zoom if the map needs to react to them after initial load
+    // }, [center, zoom]);
+  }, [center, zoom]); // Run only once on mount
 
   return <div ref={mapRef} id="map" className="h-screen w-screen"></div>;
 };
