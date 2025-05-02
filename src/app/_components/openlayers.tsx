@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import OlMap from "ol/Map";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
@@ -9,7 +9,10 @@ import View from "ol/View";
 import { defaults as defaultControls } from "ol/control/defaults";
 import GeoJSON from "ol/format/GeoJSON";
 import Translate from "ol/interaction/Translate";
+import type Geometry from "ol/geom/Geometry";
+import type Feature from "ol/Feature";
 import { transform } from "ol/proj";
+import { Point, Polygon } from "ol/geom";
 import "~/styles/ol.css";
 import type { GeoJsonObject, FeatureCollection } from "geojson";
 
@@ -33,7 +36,7 @@ const geojsonData: FeatureCollection = {
           [
             [12.5, 55.6],
             [12.6, 56.7],
-            [12.7, 55.6],
+            [16.7, 56.6],
             [16.6, 55.5],
           ],
         ],
@@ -47,7 +50,6 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
   const mapRef = useRef<HTMLDivElement>(null);
 
   const mounted = useRef(false);
-
   useEffect(() => {
     if (!mapRef.current || mounted.current) return;
     const centerWebMercator = transform(center, "EPSG:4326", "EPSG:3857");
@@ -72,6 +74,25 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
     const dragInteraction = new Translate({
       layers: [vectorLayer],
     });
+    dragInteraction.on("translating", (event) => {
+      event.features.forEach((feature) => {
+        const geometry = feature.getGeometry();
+        if (geometry instanceof Point) {
+          const draggedCoordinate = geometry.getCoordinates();
+
+          console.log("Point dragged to:", draggedCoordinate);
+          // Handle point-specific logic here
+        } else if (geometry instanceof Polygon) {
+          const draggedCoordinates = geometry.getCoordinates();
+
+          console.log("Polygon dragged to:", draggedCoordinates);
+          // Handle polygon-specific logic here, e.g., updating state with the new vertices
+        } else {
+          console.log("Feature with unsupported geometry type dragged.");
+        }
+      });
+    });
+
     const olMap = new OlMap(props);
     olMap.addInteraction(dragInteraction);
     setMap(olMap);
