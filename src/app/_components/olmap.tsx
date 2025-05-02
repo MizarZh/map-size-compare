@@ -28,21 +28,6 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
   const [map, setMap] = useState<OlMap>();
   const mapRef = useRef<HTMLDivElement>(null);
 
-  const geoJSONDataRef = useRef<FeatureCollection>({
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {
-          name: "My MultiPolygon",
-          color: "blue",
-          originalCoords: data?.geometry?.coordinates || [],
-        },
-        geometry: data?.geometry,
-      },
-    ],
-  });
-
   const dragState = useRef<{
     initialGeoCenter: number[] | null;
     originalGeoCoords: number[][][][] | null;
@@ -58,38 +43,17 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
   const mounted = useRef(false);
 
   useEffect(() => {
-    if (!data) return;
-    if (data?.geometry?.type === "Polygon") {
-      geoJSONDataRef.current = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: {
-              name: "My MultiPolygon",
-              color: "blue",
-              originalCoords: [data?.geometry?.coordinates] || [],
-            },
-            geometry: {
-              type: "MultiPolygon",
-              coordinates: [data?.geometry?.coordinates] || [],
-            },
-          },
-        ],
-      };
-    }
-    // console.log(data);
-    const geoJSONData = geoJSONDataRef.current;
+    // console.log(data?.getGeometry())
     if (!mapRef.current || mounted.current) return;
+    if (data === null) return;
+    const parsedGeoJSONData = new GeoJSON().readFeatures(data);
+    console.log(parsedGeoJSONData);
 
     const viewProjection = "EPSG:3857";
     const dataProjection = "EPSG:4326";
 
     const vectorSource = new VectorSource({
-      features: new GeoJSON().readFeatures(geoJSONData, {
-        dataProjection,
-        featureProjection: viewProjection,
-      }),
+      features: parsedGeoJSONData,
     });
 
     const vectorLayer = new VectorLayer({
