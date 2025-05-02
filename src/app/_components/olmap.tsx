@@ -11,7 +11,7 @@ import GeoJSON from "ol/format/GeoJSON";
 import Translate, { type TranslateEvent } from "ol/interaction/Translate";
 import type Geometry from "ol/geom/Geometry";
 import type Feature from "ol/Feature";
-import { transform, fromLonLat, toLonLat, get as getProjection } from "ol/proj";
+import { transform, fromLonLat } from "ol/proj";
 import { Point, Polygon, MultiPolygon } from "ol/geom";
 import * as olExtent from "ol/extent";
 import "~/styles/ol.css";
@@ -59,7 +59,6 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
 
   useEffect(() => {
     if (!data) return;
-    // 将Polygon转换为MultiPolygon格式
     if (data?.geometry?.type === "Polygon") {
       geoJSONDataRef.current = {
         type: "FeatureCollection",
@@ -79,7 +78,7 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
         ],
       };
     }
-    console.log(data);
+    // console.log(data);
     const geoJSONData = geoJSONDataRef.current;
     if (!mapRef.current || mounted.current) return;
 
@@ -122,8 +121,7 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
       if (!feature) return;
       const geometry = feature.getGeometry();
 
-      // 同时支持Polygon和MultiPolygon
-      if (!(geometry instanceof Polygon || geometry instanceof MultiPolygon)) {
+      if (!(geometry instanceof MultiPolygon)) {
         return;
       }
 
@@ -162,8 +160,7 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
       const feature = event.features.getArray()[0];
       if (!feature) return;
       const geometry = feature.getGeometry();
-      if (!(geometry instanceof Polygon || geometry instanceof MultiPolygon))
-        return;
+      if (!(geometry instanceof MultiPolygon)) return;
 
       const currentProjPointerCoord = event.coordinate;
       const deltaX =
@@ -185,7 +182,6 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
       const [initialLon, initialLat] = dragState.initialGeoCenter;
       const [newLon, newLat] = newGeoCenter;
 
-      // 处理MultiPolygon的四维坐标结构
       const newGeographicCoords = dragState.originalGeoCoords.map((polygon) =>
         polygon.map((ring) =>
           ring.map((coord) => {
@@ -196,20 +192,13 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
         ),
       );
 
-      // 转换坐标并更新几何体
       const newProjectedCoords = newGeographicCoords.map((polygon) =>
         polygon.map((ring) =>
           ring.map((coord) => transform(coord, dataProjection, viewProjection)),
         ),
       );
 
-      // 根据几何类型创建新几何体
-      if (geometry instanceof MultiPolygon) {
-        geometry.setCoordinates(newProjectedCoords);
-      } else {
-        // 处理单个Polygon的情况（如果需要兼容）
-        geometry.setCoordinates(newProjectedCoords[0]);
-      }
+      geometry.setCoordinates(newProjectedCoords);
     };
 
     dragInteraction.on("translating", throttle(translateEventHandler, 1));
@@ -218,7 +207,7 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
       const feature = event.features.getArray()[0];
       if (feature) {
         const geometry = feature.getGeometry();
-        if (geometry instanceof MultiPolygon || geometry instanceof Polygon) {
+        if (geometry instanceof MultiPolygon) {
           const currentCoords = geometry.getCoordinates();
           const newGeographicCoords = currentCoords.map((polygon) =>
             polygon.map((ring) =>
