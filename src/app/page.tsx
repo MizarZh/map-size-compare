@@ -2,6 +2,7 @@
 import { api, HydrateClient } from "~/trpc/server";
 // import { api } from "~/trpc/react";
 import OlMapComponent from "~/app/_components/olmap";
+import type Feature from "ol/Feature";
 
 export default async function Home() {
   // const [geoJSONData] = api.geoJSON.getGeoJSON.useSuspenseQuery({
@@ -15,7 +16,7 @@ export default async function Home() {
   } else {
     if (geoJSONString.geojson === null) {
       console.warn("geoJSON contains no content");
-    } else geoJSONData = JSON.parse(geoJSONString.geojson) as number[][][];
+    } else geoJSONData = JSON.parse(geoJSONString.geojson) as Feature;
   }
   return (
     <HydrateClient>
