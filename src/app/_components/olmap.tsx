@@ -12,7 +12,7 @@ import Translate, { type TranslateEvent } from "ol/interaction/Translate";
 import type Geometry from "ol/geom/Geometry";
 import Feature from "ol/Feature"; // Import Feature
 import { transform, fromLonLat, toLonLat, get as getProjection } from "ol/proj";
-import { Point, Polygon } from "ol/geom";
+import { Point, Polygon, MultiPolygon } from "ol/geom";
 import * as olExtent from "ol/extent"; // For calculating center/extent
 import "~/styles/ol.css";
 import type { FeatureCollection } from "geojson";
@@ -22,6 +22,7 @@ import { throttle } from "~/utils/utils";
 interface OpenLayersProps {
   center: number[];
   zoom: number;
+  data: number[][][] | null;
 }
 
 // Store original geographic coordinates separately for reference
@@ -43,32 +44,33 @@ const originalGeographicCoordinates = [
   ],
 ];
 
-const geojsonData: FeatureCollection = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: {
-        name: "My Polygon",
-        color: "blue",
-        // Store original coords on the feature for easier access
-        // Use a deep copy to avoid accidental modification
-        // originalCoords: JSON.parse(
-        //   JSON.stringify(originalGeographicCoordinates),
-        // ),
-        originalCoords: originalGeographicCoordinates,
-      },
-      geometry: {
-        type: "Polygon",
-        coordinates: originalGeographicCoordinates,
-      },
-    },
-  ],
-};
-
-const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
+const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom, data }) => {
   const [map, setMap] = useState<OlMap>();
   const mapRef = useRef<HTMLDivElement>(null);
+  const geojsonData: FeatureCollection = useRef<FeatureCollection>({
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: {
+          name: "My Polygon",
+          color: "blue",
+          // Store original coords on the feature for easier access
+          // Use a deep copy to avoid accidental modification
+          // originalCoords: JSON.parse(
+          //   JSON.stringify(originalGeographicCoordinates),
+          // ),
+          // originalCoords: data["geometry"]["coordinates"][0],
+          originalCoords: data["geometry"]["coordinates"],
+        },
+        geometry: {
+          type: "Polygon",
+          // coordinates: data["geometry"]["coordinates"][0],
+          coordinates: data["geometry"]["coordinates"],
+        },
+      },
+    ],
+  }).current;
   // Store state related to the drag operation
   const dragState = useRef<{
     initialGeoCenter: number[] | null;
@@ -85,6 +87,8 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
   const mounted = useRef(false);
 
   useEffect(() => {
+    console.log(data["geometry"]["coordinates"][0]);
+    console.log(geojsonData);
     if (!mapRef.current || mounted.current) return;
 
     const viewProjection = "EPSG:3857";
@@ -126,7 +130,9 @@ const OlMapComponent: React.FC<OpenLayersProps> = ({ center, zoom }) => {
       const feature = event.features.getArray()[0];
       if (!feature) return;
       const geometry = feature.getGeometry();
-      if (!(geometry instanceof Polygon)) return;
+      if (!(geometry instanceof Polygon)) {
+        return;
+      }
 
       // Store original geographic coordinates from feature property
       dragState.originalGeoCoords = feature.get(

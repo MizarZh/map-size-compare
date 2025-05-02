@@ -11,7 +11,8 @@ import { index, sqliteTableCreator } from "drizzle-orm/sqlite-core";
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
 export const createTable = sqliteTableCreator(
-  (name) => `map-size-compare_${name}`,
+  // (name) => `map-size-compare_${name}`,
+  (name) => `${name}`,
 );
 
 export const posts = createTable(
@@ -27,3 +28,11 @@ export const posts = createTable(
   }),
   (t) => [index("name_idx").on(t.name)],
 );
+
+export const geoJSON = createTable("countries", (d) => ({
+  id: d.text({ length: 3 }).primaryKey(),
+  name: d.text({ length: 256 }),
+  iso3: d.text({ length: 3 }),
+  iso2: d.text({ length: 2 }),
+  geojson: d.text(),
+}));
