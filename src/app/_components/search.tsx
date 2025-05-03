@@ -1,25 +1,20 @@
-import React, { useEffect, useState } from "react";
+"use client";
+import React, { useState } from "react";
+import { api } from "~/trpc/react";
 
 const Search = () => {
   const searchWidth = "w-140";
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([] as string[]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const names = api.geoJSON.getGeoJSON.useQuery({ country: searchTerm });
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newSearchTerm = event.target.value;
     setSearchTerm(newSearchTerm);
-  };
 
-  const handleClick = (result: string) => {
-    console.log(result);
-    setSearchTerm("");
-    setSearchResults([]);
-    setIsDropdownOpen(false);
-  };
-
-  useEffect(() => {
-    if (searchTerm) {
+    if (newSearchTerm) {
+      console.log(names.data);
       const results: string[] = ["test", "test2", "test3"];
       setSearchResults(results);
       setIsDropdownOpen(true);
@@ -27,7 +22,14 @@ const Search = () => {
       setSearchResults([]);
       setIsDropdownOpen(false);
     }
-  }, [searchTerm]);
+  };
+
+  const handleClick = (result: string) => {
+    // console.log(result);
+    setSearchTerm("");
+    setSearchResults([]);
+    setIsDropdownOpen(false);
+  };
 
   return (
     <div className="absolute top-3 left-3 z-10">
