@@ -1,4 +1,4 @@
-// import MapCaller from "./_components/map-caller";
+import MapCaller from "./_components/map-caller";
 import { api, HydrateClient } from "~/trpc/server";
 // import { api } from "~/trpc/react";
 import OlMapComponent from "~/app/_components/olmap";
@@ -20,7 +20,8 @@ export default async function Home() {
   }
   return (
     <HydrateClient>
-      <OlMapComponent center={[12.5, 55.6]} zoom={6} data={geoJSONData} />
+      {/* <OlMapComponent center={[12.5, 55.6]} zoom={6} data={geoJSONData} /> */}
+      <MapCaller />
     </HydrateClient>
   );
 }
