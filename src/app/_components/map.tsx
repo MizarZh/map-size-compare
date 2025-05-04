@@ -1,14 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import type { FeatureCollection } from "geojson";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  GeoJSON,
-  ZoomControl,
-} from "react-leaflet";
+import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
 import "~/app/_components/true-size-layer";
 import addLayer from "~/app/_components/add-layer";
 import "leaflet/dist/leaflet.css";
@@ -23,36 +16,7 @@ const DefaultIcon = L.icon({
   shadowUrl: iconShadow,
 });
 
-// const addLayer = (data) => {
-
-// };
-
 L.Marker.prototype.options.icon = DefaultIcon;
-
-const geojsonData: FeatureCollection = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: {
-        name: "My Polygon",
-        color: "blue",
-      },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [12.5, 55.6],
-            [12.6, 55.7],
-            [12.7, 55.6],
-            [12.6, 55.5],
-            [12.5, 55.6],
-          ],
-        ],
-      },
-    },
-  ],
-};
 
 interface MapComponentProps {
   data: FeatureCollection | null;

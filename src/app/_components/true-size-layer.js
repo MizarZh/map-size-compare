@@ -7,7 +7,6 @@ import { coordAll as turfCoordAll } from "@turf/meta";
 
 let id = 0;
 
-// L.TrueSize = L.Layer.extend({
 const TrueSize = L.Layer.extend({
   geoJSON: {
     type: "Feature",
@@ -246,7 +245,6 @@ const TrueSize = L.Layer.extend({
   },
 });
 
-// L.trueSize = (geoJSON, options) => new L.TrueSize(geoJSON, options);
 const trueSize = (geoJSON, options) => new TrueSize(geoJSON, options);
 
 export default trueSize;

@@ -1,4 +1,3 @@
-import React, { useEffect, useRef } from "react";
 import type { FeatureCollection } from "geojson";
 import { type Map } from "leaflet";
 import trueSize from "./true-size-layer";
@@ -15,7 +14,7 @@ const getRandomColor = () => {
 
 const addLayer = (data: FeatureCollection, name: string, map: Map) => {
   const boundaryColor = getRandomColor();
-  const trueSizeLayer = trueSize(data, {
+  trueSize(data, {
     markerDiv: `<h2>${name}</h2>`,
     iconAnchor: [35, 35],
     fill: true,

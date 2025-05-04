@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { GeoJsonObject, FeatureCollection } from "geojson";
+import type { FeatureCollection } from "geojson";
 
 const LazyMap = dynamic(() => import("~/app/_components/map"), {
   ssr: false,
