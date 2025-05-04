@@ -30,9 +30,9 @@ export const posts = createTable(
 );
 
 export const geoJSON = createTable("countries", (d) => ({
-  id: d.text({ length: 3 }).primaryKey(),
-  name: d.text({ length: 256 }),
-  iso3: d.text({ length: 3 }),
-  iso2: d.text({ length: 2 }),
-  geojson: d.text(),
+  id: d.text({ length: 3 }).primaryKey().notNull(),
+  name: d.text({ length: 256 }).notNull(),
+  iso3: d.text({ length: 3 }).notNull(),
+  iso2: d.text({ length: 2 }).notNull(),
+  geojson: d.text().notNull(),
 }));

@@ -1,34 +1,51 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
+import { useDebounce } from "@uidotdev/usehooks";
 
 const Search = () => {
   const searchWidth = "w-140";
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([] as string[]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const names = api.geoJSON.getGeoJSON.useQuery({ country: searchTerm });
+  const debounceTerm = useDebounce(searchTerm, 200);
+
+  const countryNames = api.geoJSON.getCountryData.useQuery(
+    {
+      country: debounceTerm,
+    },
+    { enabled: !!debounceTerm },
+  );
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newSearchTerm = event.target.value;
     setSearchTerm(newSearchTerm);
 
-    if (newSearchTerm) {
-      console.log(names.data);
-      const results: string[] = ["test", "test2", "test3"];
-      setSearchResults(results);
-      setIsDropdownOpen(true);
-    } else {
+    if (!newSearchTerm) {
       setSearchResults([]);
       setIsDropdownOpen(false);
     }
   };
 
+  useEffect(() => {
+    if (countryNames.isSuccess) {
+      setSearchResults(countryNames.data.map((val) => val.name));
+      setIsDropdownOpen(true);
+    }
+  }, [countryNames.isSuccess, countryNames.data, searchTerm]);
+
   const handleClick = (result: string) => {
-    // console.log(result);
     setSearchTerm("");
     setSearchResults([]);
     setIsDropdownOpen(false);
+  };
+
+  const renderInfo = () => {
+    if (countryNames.status === "pending") {
+      return "Loading...";
+    } else if (searchResults.length === 0) {
+      return "No results found.";
+    }
   };
 
   return (
@@ -62,32 +79,35 @@ const Search = () => {
         </div>
       </div>
 
-      {isDropdownOpen && searchResults.length > 0 && (
-        <div
-          className={`absolute top-14 left-0 z-20 mt-1 ${searchWidth} rounded-md bg-white shadow-lg dark:bg-gray-800`}
-        >
-          <ul className="max-h-60 overflow-auto focus:outline-none">
-            {searchResults.map((result, index) => (
-              <li
-                key={index}
-                className="cursor-pointer border-b border-gray-400 px-4 py-2 text-xl text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-                onClick={() => handleClick(result)}
-              >
-                {result}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {isDropdownOpen && searchResults.length === 0 && searchTerm && (
-        <div
-          className={`absolute top-14 left-0 z-20 mt-1 ${searchWidth} rounded-md bg-white shadow-lg dark:bg-gray-800`}
-        >
-          <div className="px-4 py-2 text-xl text-gray-500 dark:text-gray-400">
-            No results found.
+      {isDropdownOpen &&
+        searchResults.length > 0 &&
+        countryNames.status === "success" && (
+          <div
+            className={`absolute top-14 left-0 z-20 mt-1 ${searchWidth} rounded-md bg-white shadow-lg dark:bg-gray-800`}
+          >
+            <ul className="max-h-60 overflow-auto focus:outline-none">
+              {searchResults.map((result, index) => (
+                <li
+                  key={index}
+                  className="cursor-pointer border-b border-gray-400 px-4 py-2 text-xl text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+                  onClick={() => handleClick(result)}
+                >
+                  {result}
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      )}
+        )}
+      {searchTerm &&
+        (searchResults.length === 0 || countryNames.status === "pending") && (
+          <div
+            className={`absolute top-14 left-0 z-20 mt-1 ${searchWidth} rounded-md bg-white shadow-lg dark:bg-gray-800`}
+          >
+            <div className="px-4 py-2 text-xl text-gray-500 dark:text-gray-400">
+              {renderInfo()}
+            </div>
+          </div>
+        )}
     </div>
   );
 };

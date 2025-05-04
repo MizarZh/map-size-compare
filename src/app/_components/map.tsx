@@ -15,7 +15,6 @@ import L, { Map } from "leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
-import Search from "./search";
 
 const DefaultIcon = L.icon({
   // @ts-expect-error idk why pass StaticImageData to string works
@@ -66,22 +65,19 @@ const MapComponent = () => {
   const position: [number, number] = [55.6, 12.5];
 
   return (
-    <>
-      <MapContainer
-        center={position}
-        zoom={13}
-        className="z-0 h-screen w-screen"
-        zoomControl={false}
-      >
-        <ZoomControl position={"topright"} />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <GeoJSON data={geojsonData} />
-      </MapContainer>
-      <Search />
-    </>
+    <MapContainer
+      center={position}
+      zoom={13}
+      className="z-0 h-screen w-screen"
+      zoomControl={false}
+    >
+      <ZoomControl position={"topright"} />
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <GeoJSON data={geojsonData} />
+    </MapContainer>
   );
 };
 
