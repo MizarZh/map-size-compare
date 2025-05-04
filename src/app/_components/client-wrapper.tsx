@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import MapCaller from "~/app/_components/map-caller";
 import Search from "~/app/_components/search";
-import type { GeoJsonObject, FeatureCollection } from "geojson";
+import type { FeatureCollection } from "geojson";
 
 const ClientWrapper = () => {
   const [geoJSONString, setGeoJSONString] = useState("");
@@ -11,10 +11,9 @@ const ClientWrapper = () => {
   );
 
   useEffect(() => {
-    console.log("here", geoJSONString);
-    // console.log("here", geoJSONString);
     try {
-      setGeoJSONData(JSON.parse(geoJSONString) as FeatureCollection);
+      if (geoJSONString)
+        setGeoJSONData(JSON.parse(geoJSONString) as FeatureCollection);
     } catch {
       console.error("JSON parse error");
     }

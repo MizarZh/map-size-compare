@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
 import { useDebounce } from "@uidotdev/usehooks";
-import type { GeoJsonObject, FeatureCollection } from "geojson";
 
 interface SearchProps {
   setData: React.Dispatch<React.SetStateAction<string>>;
