@@ -2,19 +2,32 @@
 import React, { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
 import { useDebounce } from "@uidotdev/usehooks";
+import type { GeoJsonObject, FeatureCollection } from "geojson";
 
-const Search = () => {
+interface SearchProps {
+  setData: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const Search: React.FC<SearchProps> = ({ setData }) => {
   const searchWidth = "w-140";
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([] as string[]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const debounceTerm = useDebounce(searchTerm, 200);
+  const [selectedName, setSelectedName] = useState("");
 
   const countryNames = api.geoJSON.getCountryData.useQuery(
     {
       country: debounceTerm,
     },
     { enabled: !!debounceTerm },
+  );
+
+  const getGeoJSONFromName = api.geoJSON.getGeoJSONfromName.useQuery(
+    {
+      name: selectedName,
+    },
+    { enabled: !!selectedName },
   );
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,10 +48,23 @@ const Search = () => {
   }, [countryNames.isSuccess, countryNames.data, searchTerm]);
 
   const handleClick = (result: string) => {
+    setSelectedName(result);
     setSearchTerm("");
     setSearchResults([]);
     setIsDropdownOpen(false);
   };
+
+  useEffect(() => {
+    if (getGeoJSONFromName.isSuccess) {
+      setData(getGeoJSONFromName.data ? getGeoJSONFromName.data.geojson : "");
+      console.log(getGeoJSONFromName.data);
+    }
+  }, [
+    getGeoJSONFromName.isSuccess,
+    getGeoJSONFromName.data,
+    setData,
+    selectedName,
+  ]);
 
   const renderInfo = () => {
     if (countryNames.status === "pending") {

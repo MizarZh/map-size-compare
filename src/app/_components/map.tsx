@@ -15,7 +15,6 @@ import L, { Map } from "leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
-
 const DefaultIcon = L.icon({
   // @ts-expect-error idk why pass StaticImageData to string works
   iconUrl: icon,
@@ -57,11 +56,15 @@ interface TrueSizeLayerProps {
   opacity: number;
 }
 
+interface MapComponentProps {
+  data: FeatureCollection | null;
+}
+
 // const TrueSizeLayer: React.FC<TrueSizeLayerProps> = ({ data, color, weight, opacity, ref }) => {
 
 // };
 
-const MapComponent = () => {
+const MapComponent: React.FC<MapComponentProps> = ({ data }) => {
   const position: [number, number] = [55.6, 12.5];
 
   return (
@@ -76,7 +79,7 @@ const MapComponent = () => {
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <GeoJSON data={geojsonData} />
+      {data && <GeoJSON data={data} />}
     </MapContainer>
   );
 };

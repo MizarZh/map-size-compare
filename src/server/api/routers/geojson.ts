@@ -41,6 +41,6 @@ export const geoJSONRouter = createTRPCRouter({
       const res = await ctx.db.query.geoJSON.findFirst({
         where: eq(geoJSON.name, input.name),
       });
-      return res ?? [];
+      return res;
     }),
 });
