@@ -1,10 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, createContext } from "react";
 import MapCaller from "~/app/_components/map-caller";
 import Search from "~/app/_components/search";
 import type { FeatureCollection } from "geojson";
 
-const ClientWrapper = () => {
+export const GeoJSONContext = createContext<FeatureCollection | null>(null);
+
+export const ClientWrapper = () => {
   const [geoJSONString, setGeoJSONString] = useState("");
   const [geoJSONData, setGeoJSONData] = useState<FeatureCollection | null>(
     null,
@@ -20,11 +22,9 @@ const ClientWrapper = () => {
   }, [geoJSONString]);
 
   return (
-    <>
-      <MapCaller data={geoJSONData} />
+    <GeoJSONContext.Provider value={geoJSONData}>
+      <MapCaller />
       <Search setData={setGeoJSONString} />
-    </>
+    </GeoJSONContext.Provider>
   );
 };
-
-export default ClientWrapper;

@@ -1,13 +1,14 @@
 "use client";
-import React, { useEffect, useRef } from "react";
-import type { FeatureCollection } from "geojson";
+import React, { useEffect, useRef, useContext } from "react";
 import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
-import "~/app/_components/true-size-layer";
-import addLayer from "~/app/_components/add-layer";
 import "leaflet/dist/leaflet.css";
 import L, { type Map } from "leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
+
+import { GeoJSONContext } from "./client-wrapper";
+import addLayer from "~/app/_components/add-layer";
+import "~/app/_components/true-size-layer";
 
 const DefaultIcon = L.icon({
   // @ts-expect-error idk why pass StaticImageData to string works
@@ -18,16 +19,12 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-interface MapComponentProps {
-  data: FeatureCollection | null;
-}
-
-const MapComponent: React.FC<MapComponentProps> = ({ data }) => {
+const MapComponent = () => {
   const position: [number, number] = [0, 0];
   const map = useRef<Map>(null);
+  const data = useContext(GeoJSONContext);
 
   useEffect(() => {
-    console.log(data);
     if (data && map.current) addLayer(data, "test", map.current);
   }, [data]);
 
