@@ -35,5 +35,8 @@ const addLayer = (
 
   // Add the layer to the map
   layer.addTo(map);
+  
+  // Return the layer for tracking
+  return layer;
 };
 export default addLayer;

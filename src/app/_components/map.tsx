@@ -1,8 +1,14 @@
 "use client";
-import React, { useEffect, useRef, useContext } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useContext,
+  useState,
+  useCallback,
+} from "react";
 import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L, { type Map } from "leaflet";
+import L, { type Map, type Layer } from "leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
@@ -18,18 +24,60 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-
 const MapComponent = () => {
   const position: [number, number] = [0, 0];
   const map = useRef<Map>(null);
   const data = useContext(GeoJSONContext);
+  // Track layers for deletion
+  const [layers, setLayers] = useState<Layer[]>([]);
+
+  // Handler for removing a layer
+  const handleRemoveLayer = useCallback((layer: Layer) => {
+    // Remove the layer from the map
+    layer.remove();
+
+    // Update the layers state to remove this layer
+    setLayers((prevLayers) => prevLayers.filter((l) => l !== layer));
+  }, []);
 
   useEffect(() => {
     if (data && map.current) {
       const layerName = (data.properties?.name as string) ?? "Unnamed Layer";
-      addLayer(data, layerName, map.current);
+      const layer = addLayer(data, layerName, map.current);
+
+      // Add the new layer to our tracked layers
+      if (layer) {
+        // map.current?.on("click", (e) => {
+        //   if (e.originalEvent.target.nodeName == "path") console.log(e);
+        // });
+
+        map.current?.on("contextmenu", (e) => {
+          // right click a layer
+
+          if (
+            e.originalEvent?.target &&
+            (e.originalEvent.target as unknown as HTMLElement).nodeName ==
+              "path"
+          ) {
+            handleRemoveLayer(e.originalEvent.target as unknown as Layer);
+          }
+        });
+
+        // Add contextmenu event handler to the layer
+        layer.on("contextmenu", (e) => {
+          console.log("here", layer);
+          // Stop the event from propagating to the map
+          L.DomEvent.stopPropagation(e);
+
+          // Remove the layer
+          handleRemoveLayer(layer);
+        });
+
+        // The _currentId is already set by the true-size-layer
+        setLayers((prevLayers) => [...prevLayers, layer]);
+      }
     }
-  }, [data]);
+  }, [data, handleRemoveLayer]);
 
   return (
     <MapContainer
