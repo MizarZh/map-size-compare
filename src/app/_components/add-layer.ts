@@ -1,5 +1,6 @@
-import type { FeatureCollection } from "geojson";
+import type { Feature } from "geojson";
 import { type Map } from "leaflet";
+import type { Layer } from "leaflet";
 import trueSize from "./true-size-layer";
 
 const getRandomColor = () => {
@@ -12,10 +13,15 @@ const getRandomColor = () => {
   return [color, outline];
 };
 
-const addLayer = (data: FeatureCollection, name: string, map: Map) => {
+const addLayer = (
+  data: Feature,
+  name: string,
+  map: Map,
+  tooltipText?: string,
+) => {
   const boundaryColor = getRandomColor();
-  trueSize(data, {
-    markerDiv: `<h2>${name}</h2>`,
+  // Use type assertion to tell TypeScript that trueSize returns a Layer
+  const layer = trueSize(data, {
     iconAnchor: [35, 35],
     fill: true,
     fillColor: boundaryColor[0],
@@ -24,6 +30,10 @@ const addLayer = (data: FeatureCollection, name: string, map: Map) => {
     weight: 3, //darker version of the same random
     opacity: 1, //color but black just looks nicer.
     stroke: true,
-  }).addTo(map);
+    tooltipText: tooltipText ?? name, // Use nullish coalescing operator instead of logical or
+  }) as Layer;
+
+  // Add the layer to the map
+  layer.addTo(map);
 };
 export default addLayer;

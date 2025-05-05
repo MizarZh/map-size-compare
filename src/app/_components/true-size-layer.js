@@ -34,6 +34,7 @@ const TrueSize = L.Layer.extend({
     markerDiv: null,
     markerClass: null,
     iconAnchor: [],
+    tooltipText: null,
   },
 
   initialize(geoJSON = this.geoJSON, options = {}) {
@@ -77,6 +78,11 @@ const TrueSize = L.Layer.extend({
 
     // wrap currentlayer into draggable layer
     this._createDraggable(this._currentLayer);
+
+    // Add tooltip if tooltipText is provided
+    if (this._options.tooltipText) {
+      this._currentLayer.bindTooltip(this._options.tooltipText);
+    }
 
     this._initialBearingDistance = this._getBearingDistance([
       centerCoords.lng,
@@ -161,8 +167,11 @@ const TrueSize = L.Layer.extend({
 
   _getBearingDistance(center) {
     if (this._isMultiPolygon) {
-      return this._currentLayer.feature.geometry.coordinates[0].map((coords) =>
-        coords.map((coord) => this._getBearingAndDistance(center, coord)),
+      // [][][][2]
+      return this._currentLayer.feature.geometry.coordinates.map((polygon) =>
+        polygon.map((ring) =>
+          ring.map((coord) => this._getBearingAndDistance(center, coord)),
+        ),
       );
     }
 
@@ -181,13 +190,15 @@ const TrueSize = L.Layer.extend({
     let newPoints;
 
     if (this._isMultiPolygon) {
-      newPoints = this._initialBearingDistance.map((params) => [
-        params.map((param) => {
-          return turfDestination(newPos, param.distance, param.bearing, {
-            units: "kilometers",
-          }).geometry.coordinates;
-        }),
-      ]);
+      newPoints = this._initialBearingDistance.map((polygon) => {
+        return polygon.map((ring) => {
+          return ring.map((coord) => {
+            return turfDestination(newPos, coord.distance, coord.bearing, {
+              units: "kilometers",
+            }).geometry.coordinates;
+          });
+        });
+      });
     } else {
       newPoints = this._initialBearingDistance.map((param) => {
         return turfDestination(newPos, param.distance, param.bearing, {
@@ -213,6 +224,12 @@ const TrueSize = L.Layer.extend({
     // add draggable hook again, as we using internal a new layer
     // center marker if existing
     this._createDraggable(this._currentLayer);
+    
+    // Re-add tooltip if tooltipText is provided
+    if (this._options.tooltipText) {
+      this._currentLayer.bindTooltip(this._options.tooltipText);
+    }
+    
     this._dragMarker &&
       this._dragMarker.setLatLng(this._currentLayer.getCenter());
   },

@@ -25,7 +25,10 @@ const MapComponent = () => {
   const data = useContext(GeoJSONContext);
 
   useEffect(() => {
-    if (data && map.current) addLayer(data, "test", map.current);
+    if (data && map.current) {
+      const layerName = (data.properties?.name as string) ?? "Unnamed Layer";
+      addLayer(data, layerName, map.current);
+    }
   }, [data]);
 
   return (
