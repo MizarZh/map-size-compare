@@ -28,12 +28,12 @@ const MapComponent = () => {
   const position: [number, number] = [0, 0];
   const map = useRef<Map>(null);
   const data = useContext(GeoJSONContext);
-  // Track layers for deletion
   const [layers, setLayers] = useState<Layer[]>([]);
 
   // Handler for removing a layer
   const handleRemoveLayer = useCallback((layer: Layer) => {
     // Remove the layer from the map
+    // layer.getTooltip()?.remove();
     layer.remove();
 
     // Update the layers state to remove this layer
@@ -47,13 +47,7 @@ const MapComponent = () => {
 
       // Add the new layer to our tracked layers
       if (layer) {
-        // map.current?.on("click", (e) => {
-        //   if (e.originalEvent.target.nodeName == "path") console.log(e);
-        // });
-
-        map.current?.on("contextmenu", (e) => {
-          // right click a layer
-
+        map.current.on("contextmenu", (e) => {
           if (
             e.originalEvent?.target &&
             (e.originalEvent.target as unknown as HTMLElement).nodeName ==
@@ -62,22 +56,10 @@ const MapComponent = () => {
             handleRemoveLayer(e.originalEvent.target as unknown as Layer);
           }
         });
-
-        // Add contextmenu event handler to the layer
-        layer.on("contextmenu", (e) => {
-          console.log("here", layer);
-          // Stop the event from propagating to the map
-          L.DomEvent.stopPropagation(e);
-
-          // Remove the layer
-          handleRemoveLayer(layer);
-        });
-
-        // The _currentId is already set by the true-size-layer
         setLayers((prevLayers) => [...prevLayers, layer]);
       }
     }
-  }, [data, handleRemoveLayer]);
+  }, [data, handleRemoveLayer, map]);
 
   return (
     <MapContainer
