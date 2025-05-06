@@ -28,7 +28,7 @@ const MapComponent = () => {
   const position: [number, number] = [0, 0];
   const map = useRef<Map>(null);
   const data = useContext(GeoJSONContext);
-  const [layers, setLayers] = useState<Layer[]>([]);
+  const [_, setLayers] = useState<Layer[]>([]);
 
   // Handler for removing a layer
   const handleRemoveLayer = useCallback((layer: Layer) => {

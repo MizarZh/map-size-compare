@@ -49,3 +49,4 @@ yarn-error.log*
 
 wrangler.toml
 .wrangler
+.open-next
