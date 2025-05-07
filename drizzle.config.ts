@@ -8,5 +8,5 @@ export default {
   dbCredentials: {
     url: env.DATABASE_URL,
   },
-  tablesFilter: ["map-size-compare_*"],
+  // tablesFilter: ["map-size-compare_*"],
 } satisfies Config;

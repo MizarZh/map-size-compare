@@ -5,9 +5,12 @@
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  reactStrictMode: true,
+  output: "standalone",
+};
 
 export default config;
 
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+// import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+// initOpenNextCloudflareForDev();
